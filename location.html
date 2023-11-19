@@ -1,5 +1,5 @@
-{{ range .suggestions }}
+{{ range .Addresses }}
     <div class="suggestion-item bg-gray-200 hover:bg-gray-300 rounded p-2 my-1 cursor-pointer">
-        {{ .Features }}    
+        {{ . }}    
     </div>
 {{ end }}

@@ -9,6 +9,10 @@ import (
 	"net/http"
 )
 
+type Credentials struct {
+	GeoapifyApiKey string `json:"geoapify_api_key"`
+}
+
 type FeatureCollection struct {
 	Features []Feature `json:"features"`
 }
@@ -68,43 +72,44 @@ func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate html fragment 
-	suggestionsMap := map[string][]Feature{
-		"suggestions": featureCollection.Features,
+
+	// Format the address
+	var formattedAddresses []string
+	for _, feature := range featureCollection.Features {
+    	formattedAddresses = append(formattedAddresses, feature.Properties.Formatted)
 	}
+
+	suggestionsMap := map[string][]string{
+    	"Addresses": formattedAddresses,
+	}
+
+	// Generate html fragment 
 	tmpl := template.Must(template.ParseFiles("location.html"))
 	tmpl.Execute(w, suggestionsMap)
 	
-
-	// addressStrings := []string{}
-
-	// // Iterate through the features to extract the address
-	// for _, feature := range featureCollection.Features {
-	// 	addressStrings = append(addressStrings, feature.Properties.Formatted)
-	// }
-
-	// // Generate html fragment for each address
-	// html := ""
-	// for _, address := range addressStrings {
-	// 	html += "<div>" + address + "</div>"
-	// }
-
-	// // Send the html fragment as response
-	// w.WriteHeader(http.StatusOK)
-	// w.Write([]byte(html))
-
 }
 
 func callAutoComplete(location string) []byte {
+	// Construct the URL
 	baseUrl := "https://api.geoapify.com/v1/geocode/autocomplete"
-	apiKey := "ba3ecb45c2e34a598c8fea9098d29d7a"
+	data, err := ioutil.ReadFile("creds.json")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	var credentials Credentials
+	err = json.Unmarshal(data, &credentials)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	apiKey := credentials.GeoapifyApiKey 
 	url := fmt.Sprintf("%s?text=%s&apiKey=%s", baseUrl, location, apiKey)
 
+	// Call the API
 	method := "GET"
-
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, nil)
-
 	if err != nil {
 		fmt.Println(err); 
 		return nil
@@ -115,12 +120,10 @@ func callAutoComplete(location string) []byte {
 		return nil
 	}
 	defer res.Body.Close()
-
 	if res.StatusCode != http.StatusOK {
         fmt.Printf("API request failed with status code: %d\n", res.StatusCode)
         return nil
     }
-
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println(err)

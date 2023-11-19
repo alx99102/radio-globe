@@ -49,8 +49,13 @@ func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	autoCompletesJsonData := callAutoComplete(location)
+	if autoCompletesJsonData == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Error calling autocomplete API"))
+		return
+	}
 
-	// Unmarshal JSON into your structs
+	// Unmarshal JSON into struct
 	var featureCollection FeatureCollection
 	err := json.Unmarshal([]byte(autoCompletesJsonData), &featureCollection)
 	if err != nil {
@@ -97,6 +102,11 @@ func callAutoComplete(location string) []byte {
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode != http.StatusOK {
+        fmt.Printf("API request failed with status code: %d\n", res.StatusCode)
+        return nil
+    }
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println(err)
@@ -106,7 +116,7 @@ func callAutoComplete(location string) []byte {
 }
 
 func main() {
-	fmt.Println("Starting server...")
+	fmt.Println("Starting server")
 
 	http.HandleFunc("/search/", handleSearch)
 	http.HandleFunc("/auto-complete/", autoCompleteSearch)
@@ -114,5 +124,4 @@ func main() {
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
-	fmt.Println("Server started")
 }

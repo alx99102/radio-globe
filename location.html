@@ -1,5 +1,6 @@
-{{ range .Addresses }}
-    <div class="suggestion-item bg-gray-200 hover:bg-gray-300 rounded p-2 my-1 cursor-pointer">
-        {{ . }}    
+{{ range $idx, $el := .Addresses }}
+    <div class="suggestion-item bg-gray-200 hover:bg-gray-300 rounded p-2 my-1 cursor-pointer" hx-post="/search/" hx-target=".content-container" name="location-button" hx-params="location-choice-{{ $idx }}">
+        <input type="hidden" name="location-choice-{{ $idx }}" value="{{ $el }}">
+        {{ $el }}
     </div>
 {{ end }}

@@ -39,7 +39,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {
-	location := r.PostFormValue("location")
+
+	// get the location from element's value
+	if err := r.ParseForm(); err != nil {
+		fmt.Println("Error parsing form:", err)
+		return
+	}
+
+	location := r.FormValue("location-button")
 
 	w.Write([]byte(location))
 }
@@ -47,7 +54,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
 	location := r.URL.Query().Get("location")
 	if location == "" {
-		// Handle empty input scenario, perhaps by sending an empty response
+		// Handle empty input scenario
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(""))
 		return
@@ -85,8 +92,10 @@ func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
 
 	// Generate html fragment 
 	tmpl := template.Must(template.ParseFiles("location.html"))
-	tmpl.Execute(w, suggestionsMap)
-	
+	err = tmpl.Execute(w, suggestionsMap)
+	if err != nil {
+		fmt.Println("Error executing template:", err)
+	}
 }
 
 func callAutoComplete(location string) []byte {

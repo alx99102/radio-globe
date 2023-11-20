@@ -7,10 +7,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Credentials struct {
 	GeoapifyApiKey string `json:"geoapify_api_key"`
+	GoogleMapsApiKey string `json:"google_maps_api_key"`
 }
 
 type FeatureCollection struct {
@@ -46,9 +48,37 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	location := r.FormValue("location-button")
+	// location := r.FormValue("location-button")
+	temp := ""
+	location := ""
+	for i := 0; i < 5; i++ {
+		// fmt.Print("location-choice-" + strconv.Itoa(i) + "\n")
+		temp = r.FormValue("location-choice-" + strconv.Itoa(i))
+		if temp != "" {
 
-	w.Write([]byte(location))
+			location = temp
+			break
+		}
+	}
+	locationFrag := `<input 
+	class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mr-4" 
+	type="text" 
+	id="autocomplete" 
+	name="location" 
+	placeholder="Enter location" 
+	hx-get="/auto-complete/" 
+	hx-trigger="keyup changed delay:1000ms" 
+	hx-target="#suggestions" 
+	hx-indicator="#loading"
+	value="%s">
+	<button 
+	class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" 
+	type="submit">
+	Submit
+	</button>
+	`
+	locationFrag = fmt.Sprintf(locationFrag, location)
+	w.Write([]byte(locationFrag))
 }
 
 func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
@@ -141,12 +171,39 @@ func callAutoComplete(location string) []byte {
 	return body
 }
 
+func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
+	var credentials Credentials
+	data, err := ioutil.ReadFile("creds.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = json.Unmarshal(data, &credentials)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	tmpl := `<iframe 
+	class="w-screen h-screen"
+	style="border:0"
+	loading="lazy"
+	allowfullscreen
+	referrerpolicy="no-referrer-when-downgrade"
+	src="https://www.google.com/maps/embed/v1/place?key=%s
+		&q=%s">
+	</iframe>`
+	location := r.URL.Query().Get("location")
+	tmpl = fmt.Sprintf(tmpl, credentials.GoogleMapsApiKey, location)
+	w.Write([]byte(tmpl))
+}
+
 func main() {
 	fmt.Println("Starting server")
 
 	http.HandleFunc("/search/", handleSearch)
 	http.HandleFunc("/auto-complete/", autoCompleteSearch)
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/map/", mapChangeFunc)
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 

@@ -11,14 +11,15 @@
     <div class="absolute side-panel w-1/4 min-w-fit max-w-7xl">
         <form 
             class="bg-white shadow-md rounded px-3 pt-1 pb-3" 
-            hx-post="/search/" 
-            hx-target=".content-container">
+            hx-get="/map/"
+            hx-param="location" 
+            hx-target=".main-panel">
 
             <div>
                 <label class="block text-gray-700 text-sm font-bold mb-1" for="location">
                     Location
                 </label>
-                <div class="flex items-center">
+                <div class="flex items-center" id="test-target">
                     <input 
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mr-4" 
                         type="text" 
@@ -39,10 +40,17 @@
                 <div id="loading" style="display:none;">Loading...</div>
             </div>
         </form>
-        <div class="content-container">
-        </div>
     </div>
     <div class="main-panel w-screen h-screen bg-blue-300">
+        <iframe 
+            class="w-screen h-screen"
+            style="border:0"
+            loading="lazy"
+            allowfullscreen
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBao5XWfJYGu7au_NSKxgtopOYFgQ7m5hE
+                &q=Portland, OR, United States of America">
+</iframe>
     </div>
 </body>
 </html>

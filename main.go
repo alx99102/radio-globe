@@ -37,7 +37,27 @@ type Properties struct {
 func handler(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("index.html"))
 
-	tmpl.Execute(w, nil)
+	var credentials Credentials
+	data, err := ioutil.ReadFile("creds.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = json.Unmarshal(data, &credentials)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	
+	CredMap := map[string]string{
+    	"APIKey": credentials.GoogleMapsApiKey,
+	}
+	// Generate html fragment and populate with credentials
+	err = tmpl.Execute(w, CredMap)
+	if err != nil {
+		fmt.Println("Error executing template:", err)
+	}
 }
 
 func handleSearch(w http.ResponseWriter, r *http.Request) {
@@ -193,6 +213,9 @@ func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
 		&q=%s">
 	</iframe>`
 	location := r.URL.Query().Get("location")
+	if location == "" {
+		location = "this is a gibberish string" 
+	}
 	tmpl = fmt.Sprintf(tmpl, credentials.GoogleMapsApiKey, location)
 	w.Write([]byte(tmpl))
 }

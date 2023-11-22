@@ -1,12 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 )
 
@@ -33,6 +36,8 @@ type Properties struct {
 	AddressLine1 string `json:"address_line1"`
 	AddressLine2 string `json:"address_line2"`
 }
+
+var db *sql.DB
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("index.html"))
@@ -221,6 +226,27 @@ func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	fmt.Println("Opening database")
+	db = initDB()
+	defer db.Close()
+
+	fmt.Print("Ingesting database")
+
+	// Read JSON data from file
+	jsonData, err := ioutil.ReadFile("../out_filtered.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+
+	var stations []Station
+	err = json.Unmarshal(jsonData, &stations)
+	if err != nil {
+   		log.Fatal(err)
+	}
+	// ingestDB(db, stations)
+
+	fmt.Println("Database created successfully")
 	fmt.Println("Starting server")
 
 	http.HandleFunc("/search/", handleSearch)
@@ -228,6 +254,23 @@ func main() {
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/map/", mapChangeFunc)
 
+	// listen for CTRL+C
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+
+	go func() {
+		for {
+			sig := <-sigChan
+			switch sig {
+			case os.Interrupt:
+				// Handle Ctrl+C: Close the database connection
+				fmt.Println("Closing database connection and shutting down")
+				db.Close()
+				os.Exit(0)
+			}
+		}
+	}()
+	
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
 }

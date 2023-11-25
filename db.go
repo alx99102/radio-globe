@@ -2,7 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -78,15 +81,33 @@ func searchByCoordinates(db *sql.DB, lat, long float64) []Station {
 //     }
 // }
 
-// var client = &http.Client{Timeout: 20 * time.Second}
 
 // type result struct {
-//     name       string
-//     statusCode int
-//     err        error
-// }
+	//     name       string
+	// 	fileType   string
+	//     err        error
+	// }
+	
+var client = &http.Client{Timeout: 20 * time.Second}
 
-// func listRadios(db *sql.DB) string{
+func getContentType(URL string) (string, error) {
+    // Make a request to the URL
+    resp, err := client.Get(URL)
+    if err != nil {
+        return "", err
+    }
+    defer resp.Body.Close()
+
+	// Check the content-type header
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		return "", fmt.Errorf("can't determine file type")
+	}
+
+	return contentType, nil 
+}
+
+// func listRadios(db *sql.DB) string {
 //     rows, err := db.Query("SELECT name, url FROM Radios")
 //     if err != nil {
 //         log.Fatal(err)
@@ -96,6 +117,7 @@ func searchByCoordinates(db *sql.DB, lat, long float64) []Station {
 //     var wg sync.WaitGroup
 //     statusCodeChan := make(chan result)
 //     errorChan := make(chan result)
+//     fileTypeChan := make(chan result)
 
 //     for rows.Next() {
 //         var name, url string
@@ -109,21 +131,14 @@ func searchByCoordinates(db *sql.DB, lat, long float64) []Station {
 //             var res result
 //             res.name = name
 
-//             req, err := http.NewRequest("GET", url, nil)
+//             fileType, err := getFileExtension(url)
 //             if err != nil {
 //                 res.err = err
 //                 errorChan <- res
 //                 return
 //             }
-
-//             response, err := client.Do(req)
-//             if err != nil {
-//                 res.err = err
-//                 errorChan <- res
-//                 return
-//             }
-//             res.statusCode = response.StatusCode
-//             statusCodeChan <- res
+//             res.fileType = fileType
+//             fileTypeChan <- res
 //         }(name, url)
 //     }
 
@@ -131,12 +146,11 @@ func searchByCoordinates(db *sql.DB, lat, long float64) []Station {
 //         wg.Wait()
 //         close(statusCodeChan)
 //         close(errorChan)
+//         close(fileTypeChan)
 //     }()
 
-//     code200s := 0
-//     code400s := 0
-//     code500s := 0
-// 	errorCount := 0
+//     fileTypes := make(map[string]int)
+//     errorCount := 0
 
 //     for {
 //         select {
@@ -146,27 +160,20 @@ func searchByCoordinates(db *sql.DB, lat, long float64) []Station {
 //                 if err != nil {
 //                     log.Fatal(err)
 //                 }
-//                 log.Println("200s:", code200s, " 400s:", code400s, " 500s:", code500s, " Errors:", errorCount)
-// 				return "Concurrent: 200s:" + string(code200s) + " 400s:" + string(code400s) + " 500s:" + string(code500s) + " Errors:" + string(errorCount)
+//                 // Output the file type counts and error count
+//                 for fileType, count := range fileTypes {
+//                     log.Println(fileType+":", count)
+//                 }
+//                 log.Println("Errors:", errorCount)
+//                 return "File Types: " + fmt.Sprintf("%v", fileTypes) + " Errors:" + fmt.Sprint(errorCount)
 //             }
 //             if res.err != nil {
-// 				errorCount++
+//                 errorCount++
 //                 log.Println(res.name, "Error: ", res.err)
 //             }
 
-//         case res, ok := <-statusCodeChan:
-//             if !ok {
-//                 continue
-//             }
-//             log.Println(res.name, res.statusCode)
-//             switch res.statusCode {
-//             case 200:
-//                 code200s++
-//             case 400:
-//                 code400s++
-//             case 500:
-//                 code500s++
-//             }
+//         case res := <-fileTypeChan:
+//             fileTypes[res.fileType]++
 //         }
 //     }
 // }

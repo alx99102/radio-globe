@@ -16,6 +16,7 @@ import (
 type Credentials struct {
 	GeoapifyApiKey string `json:"geoapify_api_key"`
 	GoogleMapsApiKey string `json:"google_maps_api_key"`
+	HereApiKey string `json:"here_api_key"`
 }
 
 type FeatureCollection struct {
@@ -209,15 +210,36 @@ func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stationsArr := searchByCoordinates(db, 45.630001, -73.519997)
+	stationsArr := []Station{}
+	location := r.URL.Query().Get("location")
+	if location == "" {
+		location = "this is a gibberish string" 
+	} else {
+		lat, lon, err := geocode(location)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		stationsArr = searchByCoordinates(db, lat, lon)
+	}
 
+
+	
 	var stations string
 	for _, station := range stationsArr {
+		contentType, err := getContentType(station.URLResolved)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 		stations += fmt.Sprintf(
 `	<div class="bg-blue-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-center">
 		Name: %s, Country: %s, Language: %s
-		<a href="%s" target="_blank">Listen</a>
-	</div>`, station.Name, station.Country, station.Language, station.URLResolved)
+		<audio controls>
+			<source src="%s" type="%s">
+			Unable to display audio
+		</audio>
+	</div>`, station.Name, station.Country, station.Language, station.URLResolved, contentType)
 	}
 	
 	tmpl := `
@@ -238,10 +260,6 @@ func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
 		src="https://www.google.com/maps/embed/v1/place?key=%s&q=%s">
 	</iframe>
 	`
-	location := r.URL.Query().Get("location")
-	if location == "" {
-		location = "this is a gibberish string" 
-	}
 	tmpl = fmt.Sprintf(tmpl, stations, credentials.GoogleMapsApiKey, location)
 	w.Write([]byte(tmpl))
 }
@@ -250,36 +268,6 @@ func main() {
 	fmt.Println("Opening database")
 	db = initDB()
 	defer db.Close()
-
-	// fmt.Print("Ingesting database")
-
-	// // Read JSON data from file
-	// jsonData, err := ioutil.ReadFile("../out_filtered.json")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	
-
-	// var stations []Station
-	// err = json.Unmarshal(jsonData, &stations)
-	// if err != nil {
-   	// 	log.Fatal(err)
-	// }
-	// ingestDB(db, stations)
-	
-	// start := time.Now()
-	// listRadios(db)
-	// elapsed := time.Since(start)
-	// fmt.Println("============================================\n")
-	// fmt.Printf("listRadios (pararelized) took %s\n", elapsed)
-	// fmt.Println("\n\n============================================\n")
-	// fmt.Println("Starting serial version in 3 seconds")
-	// fmt.Println("\n\n============================================\n")
-	// time.Sleep(3 * time.Second)
-	// start = time.Now()
-	// listRadios2(db)
-	// elapsed = time.Since(start)
-	// fmt.Printf("listRadios (serial) took %s\n", elapsed)
 
 	fmt.Println("Database opened successfully")
 	fmt.Println("Starting server")

@@ -14,9 +14,9 @@ import (
 )
 
 type Credentials struct {
-	GeoapifyApiKey string `json:"geoapify_api_key"`
+	GeoapifyApiKey   string `json:"geoapify_api_key"`
 	GoogleMapsApiKey string `json:"google_maps_api_key"`
-	HereApiKey string `json:"here_api_key"`
+	HereApiKey       string `json:"here_api_key"`
 }
 
 type FeatureCollection struct {
@@ -55,9 +55,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
 	CredMap := map[string]string{
-    	"APIKey": credentials.GoogleMapsApiKey,
+		"APIKey": credentials.GoogleMapsApiKey,
 	}
 	// Generate html fragment and populate with credentials
 	err = tmpl.Execute(w, CredMap)
@@ -116,7 +115,6 @@ func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	// Call the autocomplete API
 	autoCompletesJsonData := callAutoComplete(location)
 	if autoCompletesJsonData == nil {
@@ -124,8 +122,6 @@ func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Error calling autocomplete API"))
 		return
 	}
-
-
 
 	// Unmarshal JSON into struct
 	var featureCollection FeatureCollection
@@ -135,18 +131,17 @@ func autoCompleteSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	// Format the address
 	var formattedAddresses []string
 	for _, feature := range featureCollection.Features {
-    	formattedAddresses = append(formattedAddresses, feature.Properties.Formatted)
+		formattedAddresses = append(formattedAddresses, feature.Properties.Formatted)
 	}
 
 	suggestionsMap := map[string][]string{
-    	"Addresses": formattedAddresses,
+		"Addresses": formattedAddresses,
 	}
 
-	// Generate html fragment 
+	// Generate html fragment
 	tmpl := template.Must(template.ParseFiles("location.html"))
 	err = tmpl.Execute(w, suggestionsMap)
 	if err != nil {
@@ -168,7 +163,7 @@ func callAutoComplete(location string) []byte {
 		fmt.Println(err)
 		return nil
 	}
-	apiKey := credentials.GeoapifyApiKey 
+	apiKey := credentials.GeoapifyApiKey
 	url := fmt.Sprintf("%s?text=%s&apiKey=%s", baseUrl, location, apiKey)
 
 	// Call the API
@@ -176,7 +171,7 @@ func callAutoComplete(location string) []byte {
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		fmt.Println(err); 
+		fmt.Println(err)
 		return nil
 	}
 	res, err := client.Do(req)
@@ -186,9 +181,9 @@ func callAutoComplete(location string) []byte {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-        fmt.Printf("API request failed with status code: %d\n", res.StatusCode)
-        return nil
-    }
+		fmt.Printf("API request failed with status code: %d\n", res.StatusCode)
+		return nil
+	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println(err)
@@ -213,7 +208,7 @@ func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
 	stationsArr := []Station{}
 	location := r.URL.Query().Get("location")
 	if location == "" {
-		location = "this is a gibberish string" 
+		location = "this is a gibberish string"
 	} else {
 		lat, lon, err := geocode(location)
 		if err != nil {
@@ -223,8 +218,7 @@ func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
 		stationsArr = searchByCoordinates(db, lat, lon)
 	}
 
-
-	
+	//stations := `<div class="max-h-screen overflow-y-auto">`
 	var stations string
 	for _, station := range stationsArr {
 		contentType, err := getContentType(station.URLResolved)
@@ -232,19 +226,31 @@ func mapChangeFunc(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err)
 			continue
 		}
+
 		stations += fmt.Sprintf(
-`	<div class="bg-blue-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-center">
-		Name: %s, Country: %s, Language: %s
-		<audio controls>
-			<source src="%s" type="%s">
-			Unable to display audio
-		</audio>
-	</div>`, station.Name, station.Country, station.Language, station.URLResolved, contentType)
+			`	<div class="bg-neutral-50 text-black py-2 px-4 focus:outline-none focus:shadow-outline text-center flex flex-row gap-4 border-b border-gray-300">
+				<img src="%s" alt="station logo" class="w-1/4 h-1/4 rounded-lg">
+				<div class="w-3/4 h-1/4 flex flex-col justify-center break-words">
+				<div class="flex flex-col justify-center items-center">
+					<span class="font-bold">
+					%s<br>
+					</span>
+					<span class="text-gray-600">
+					Language: %s
+					</span>
+					<audio controls class="w-4/5">
+						<source src="%s" type="%s">
+						Unable to display audio
+					</audio>
+				</div>
+				</div>
+			</div>`, station.Favicon, station.Name, station.Language, station.URLResolved, contentType)
 	}
-	
+	//stations += `</div>`
+
 	tmpl := `
-	<div class="absolute top-0 right-0 w-1/4">
-		<div class="bg-blue-500 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-center">
+	<div class="absolute top-0 right-0 w-1/4 max-h-screen overflow-y-auto">
+		<div class="bg-zinc-200 text-black font-bold py-2 px-4 focus:outline-none focus:shadow-outline text-center">
 			Radio List
 		</div>
 		<div class="list">
@@ -288,15 +294,13 @@ func main() {
 			case os.Interrupt:
 				// Handle Ctrl+C: Close the database connection
 				fmt.Println("Closing database connection and shutting down")
-				
+
 				// close all transactions
 				rows, err := db.Query("SELECT id FROM Radios")
 				if err != nil {
 					log.Fatal(err)
 				}
 
-
-				
 				rows.Close()
 				db.Close()
 
@@ -304,7 +308,7 @@ func main() {
 			}
 		}
 	}()
-	
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 
 }

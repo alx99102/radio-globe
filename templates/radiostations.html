@@ -1,0 +1,34 @@
+<div class="absolute top-0 right-0 w-1/4 max-h-screen overflow-y-auto">
+    <div class="bg-zinc-200 text-black font-bold py-2 px-4 focus:outline-none focus:shadow-outline text-center">
+        Radio List
+    </div>
+    <div class="list">
+        {{ range .Radios }}
+            <div class="bg-neutral-50 text-black py-2 px-4 focus:outline-none focus:shadow-outline text-center flex flex-row gap-4 border-b border-gray-300">
+                <img src="{{ .Station.Favicon }}" alt="station logo" class="w-1/4 h-1/4 rounded-lg">
+                <div class="w-3/4 h-1/4 flex flex-col justify-center break-words">
+                    <div class="flex flex-col justify-center items-center">
+                        <p class="font-bold">
+                            {{ .Station.Name }}
+                        </p>
+                        <span class="text-gray-600">
+                           Language: {{ .Station.Language }}
+                        </span>
+                        <audio controls class="w-4/5">
+                            <source src="{{ .Station.URLResolved }}" type="{{ .ContentType }}">
+                            Unable to display audio
+                        </audio>
+                    </div>
+                </div>
+            </div>
+        {{ end }}
+    </div>
+</div>
+<iframe 
+    class="w-screen h-screen"
+    style="border:0"
+    loading="lazy"
+    allowfullscreen
+    referrerpolicy="no-referrer-when-downgrade"
+    src="https://www.google.com/maps/embed/v1/place?key={{ .GoogleMapsApiKey }}&q={{ .Location }}">
+</iframe>

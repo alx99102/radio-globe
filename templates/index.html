@@ -5,31 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.8"></script>
-    <title>Document</title>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>Radio Globe</title>
 </head>
 <body>
     <div class="absolute side-panel w-1/4 min-w-fit max-w-7xl">
         <form 
             class="bg-white shadow-md rounded px-3 pt-1 pb-3" 
             hx-get="/map/"
-            hx-param="location" 
+            hx-param="location"
+            hx-indicator="#loading"
             hx-target=".main-panel">
 
             <div>
                 <label class="block text-gray-700 text-sm font-bold mb-1" for="location">
                     Location
                 </label>
-                <div class="flex items-center" id="test-target">
+                <div id="search-target" class="flex items-center">
                     <input 
-                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mr-4" 
+                        class="shadow appearance-none border rounded w-full py-2 pl-1 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                         type="text" 
                         id="autocomplete" 
                         name="location" 
                         placeholder="Enter location" 
                         hx-get="/auto-complete/" 
-                        hx-trigger="keyup changed delay:1000ms" 
-                        hx-target="#suggestions" 
-                        hx-indicator="#loading">
+                        hx-trigger="keyup changed delay:200ms" 
+                        hx-target="#suggestions">
+                    <img src="/static/spinner.svg" id="loading" class="htmx-indicator" width="35px" height="35px">
                     <button 
                         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" 
                         type="submit">
@@ -37,7 +39,6 @@
                     </button>
                 </div>
                 <div id="suggestions"></div>
-                <div id="loading" style="display:none;">Loading...</div>
             </div>
         </form>
     </div>

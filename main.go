@@ -22,6 +22,8 @@ func main() {
 	http.HandleFunc("/search/", handlers.HandleSearchInputChange)
 	http.HandleFunc("/auto-complete/", handlers.AutoCompleteSearch)
 	http.HandleFunc("/map/", handlers.MainContentChangeHandler)
+	http.HandleFunc("/static/favicon.png", handlers.ServeFavicon)
+	http.HandleFunc("/static/spinner.svg", handlers.ServeSpinner)
 
 	// listen for CTRL+C
 	sigChan := make(chan os.Signal, 1)
@@ -30,12 +32,9 @@ func main() {
 	go func() {
 		for {
 			sig := <-sigChan
-			switch sig {
-			case os.Interrupt:
-				// Handle Ctrl+C: Close the database connection
+			if(sig != nil) {
 				fmt.Println("Closing database connection and shutting down")
 				data.CloseDB()
-
 				os.Exit(0)
 			}
 		}

@@ -43,13 +43,15 @@ func MainContentChangeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var radioContent []data.RadioContent
+
+	RadioContent := make(chan data.RadioContent)
+	
 	for _, station := range stationsArr {
-		contentType, err := data.GetContentType(station.URLResolved)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		radioContent = append(radioContent, data.RadioContent{Station: station, ContentType: contentType})
+		go worker(station, RadioContent)
+	}
+
+	for range stationsArr {
+		radioContent = append(radioContent, <-RadioContent)
 	}
 
 	mainContent := data.MainContent{
@@ -63,4 +65,13 @@ func MainContentChangeHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Error executing template:", err)
 		return
 	}
+}
+
+func worker(station data.Station, RadioContent chan data.RadioContent) {
+	contentType, err := data.GetContentType(station.URLResolved)
+	if err != nil {
+		fmt.Println(err)
+		RadioContent <- data.RadioContent{}
+	}
+	RadioContent <- data.RadioContent{Station: station, ContentType: contentType}
 }
